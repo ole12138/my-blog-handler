@@ -1,18 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.jingmin.blog</groupId>
-        <artifactId>my-blog-handler</artifactId>
+        <artifactId>handle-front-matter</artifactId>
         <version>1.0-SNAPSHOT</version>
-<!--        <relativePath>../pom.xml</relativePath>-->
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.jingmin.blog.keyword.extract</groupId>
-    <artifactId>extract-keyword</artifactId>
+    <artifactId>set-front-matter</artifactId>
     <packaging>jar</packaging>
+
+    <name>set-front-matter</name>
 
     <dependencies>
         <dependency>
@@ -23,18 +21,23 @@
             <groupId>commons-cli</groupId>
             <artifactId>commons-cli</artifactId>
         </dependency>
+
+        <!-- reference: https://github.com/commonmark/commonmark-java -->
+        <!-- a library for parsing Markdown to an AST, modifying the AST and rendering it to HTML or Markdown -->
         <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
         </dependency>
+        <!-- commonmark-java extension for YAML front matter -->
         <dependency>
-            <groupId>com.fasterxml.jackson.jakarta.rs</groupId>
-            <artifactId>jackson-jakarta-rs-json-provider</artifactId>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-yaml-front-matter</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -46,7 +49,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.jingmin.blog.keyword.extract.ExtractKeywordApplication</mainClass>
+                            <mainClass>com.jingmin.blog.frontmatter.yaml.SetFrontMatterApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -68,5 +71,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

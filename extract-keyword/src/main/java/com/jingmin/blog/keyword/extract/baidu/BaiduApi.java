@@ -1,4 +1,4 @@
-package com.jingmin.blog.md.yamlfrontmatter.baidu;
+package com.jingmin.blog.keyword.extract.baidu;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;

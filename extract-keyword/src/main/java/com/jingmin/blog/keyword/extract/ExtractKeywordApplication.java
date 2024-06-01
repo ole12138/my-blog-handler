@@ -1,7 +1,7 @@
-package com.jingmin.blog.md.yamlfrontmatter;
+package com.jingmin.blog.keyword.extract;
 
-import com.jingmin.blog.md.yamlfrontmatter.baidu.BaiduApi;
-import com.jingmin.blog.md.yamlfrontmatter.util.CommandLineParser;
+import com.jingmin.blog.keyword.extract.baidu.BaiduApi;
+import com.jingmin.blog.keyword.extract.util.CommandLineParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
@@ -9,7 +9,6 @@ import org.apache.commons.io.FileUtils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class ExtractKeywordApplication {
