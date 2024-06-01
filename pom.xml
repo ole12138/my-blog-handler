@@ -12,6 +12,7 @@
     <modules>
         <module>extract-keyword</module>
         <module>handle-front-matter</module>
+        <module>upload-blog</module>
     </modules>
 
     <properties>
