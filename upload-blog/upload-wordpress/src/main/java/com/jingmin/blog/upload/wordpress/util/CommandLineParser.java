@@ -15,8 +15,8 @@ public class CommandLineParser {
     public static CommandLine parseArgs(String[] args) {
         //命令行参数解析
         Options options = new Options();
-        options.addOption(new Option("a", "access-token", true, "using the given access token"));
-        options.addOption(new Option("p", "print-access-token", false, "print access token in the first line of the standard output"));
+        options.addOption(new Option("u", "uuid", true, "UUID of the blog"));
+        options.addOption(new Option("k", "keyword", true, "Keyword of the blog. This option could be specified multiple times."));
         options.addOption(new Option("h", "help", false, "print this message"));
         // automatically generate the help statement
         HelpFormatter formatter = new HelpFormatter();

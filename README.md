@@ -42,3 +42,12 @@ mkdir -p out/${temp%/*}
 # 默认是不加head/footer和样式的, 若有需要,可以添加 --standalone标记
 pandoc --mathjax -f markdown -t html $temp -o out/${temp%.*}.html
 ```
+
+## 文章上传到wordpress
+
+//todo 暂未处理keyword 信息
+
+````shell
+/usr/lib/jvm/java-22-jdk/bin/java -jar ./upload-blog/upload-wordpress/target/upload-wordpress-1.0-SNAPSHOT.jar -k keyword1 -k keyword2 -k keyword3 -u 60754177-c85b-4458-a69f-dafffb9c1610 ./out/test.html 2>/dev/null
+
+````
