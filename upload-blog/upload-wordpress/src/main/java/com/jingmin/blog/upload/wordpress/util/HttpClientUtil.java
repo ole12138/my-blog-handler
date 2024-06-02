@@ -19,12 +19,15 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 
 /**
  * apache httpclient util
- *
+ * <p>
  * reference: <a href="https://hc.apache.org/httpcomponents-client-5.3.x/examples.html"/>
  */
 // @Slf4j
@@ -43,11 +46,11 @@ public class HttpClientUtil {
         final CredentialsProvider credentialsProvider = CredentialsProviderBuilder.create()
                 // .add(new AuthScope("localhost", 8888), "squid", "squid".toCharArray())
                 // .add(new AuthScope("httpbin.org", 80), "user", "passwd".toCharArray())
-                //issue: （这里的配置失效)
+                // issue: （这里的配置失效)
                 //   Abbas： I have the same issue, HttpGet works with UsernamePasswordCredentials but HttpPost doesn't. When I use Base64 to manually add Authorization header it works without any issue.
                 // https://stackoverflow.com/questions/3283234/http-basic-authentication-in-java-using-httpclient
 
-                .add(new AuthScope(host, port), username, password.toCharArray())//允许添加多个
+                .add(new AuthScope(host, port), username, password.toCharArray())// 允许添加多个
                 .build();
         return HttpClients.custom()
                 .setDefaultCredentialsProvider(credentialsProvider)
@@ -85,13 +88,13 @@ public class HttpClientUtil {
         HttpEntity reqEntity = new StringEntity(json, ContentType.APPLICATION_JSON);
         ClassicRequestBuilder reqBuilder = ClassicRequestBuilder.post(url)
                 .setEntity(reqEntity);
-        if(headers != null){
+        if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 reqBuilder.addHeader(entry.getKey(), entry.getValue());
             }
         }
         // .setHeader("Authorization", "Basic d2FuZ2ptOlNJWHZZRFF5ZU5Ca1NJQTlDTjJtaG53Sw==")//wangjm:SIXvYDQyeNBkSIA9CN2mhnwK
-        ClassicHttpRequest httpPost = reqBuilder .build();
+        ClassicHttpRequest httpPost = reqBuilder.build();
 
         try {
             HttpClientResponseHandler<String> responseHandler = response -> {
@@ -131,7 +134,7 @@ public class HttpClientUtil {
         return obj;
     }
 
-    public static <T> T getJson(HttpClient client, String url, String json,Map<String, String> headers, TypeReference<T> typeReference) {
+    public static <T> T getJson(HttpClient client, String url, String json, Map<String, String> headers, TypeReference<T> typeReference) {
         String respJson = getJson(client, url, json, headers);
         T obj = null;
         try {
@@ -144,16 +147,21 @@ public class HttpClientUtil {
         return obj;
     }
 
-    public static String getRespHeader(HttpClient client, String url, String json, String headerName) {
+    public static String getRespHeader(HttpClient client, Map<String, String> authHeaders, String url, String json, String headerName) {
         HttpEntity reqEntity = null;
-        if(json != null) {
+        if (json != null) {
             reqEntity = new StringEntity(json, ContentType.APPLICATION_JSON);
         }
-        ClassicHttpRequest httpPost = ClassicRequestBuilder.get(url)
-                .setEntity(reqEntity)
-                .build();
+        ClassicRequestBuilder reqBuilder = ClassicRequestBuilder.get(url)
+                .setEntity(reqEntity);
+        if (authHeaders != null) {
+            for (Map.Entry<String, String> entry : authHeaders.entrySet()) {
+                reqBuilder.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        ClassicHttpRequest getReq = reqBuilder.build();
         try {
-            HttpResponse response = client.execute(httpPost);
+            HttpResponse response = client.execute(getReq);
             return response.getHeader(headerName).getValue();
         } catch (IOException | ProtocolException e) {
             // System.err.println(e.getMessage());
@@ -165,18 +173,18 @@ public class HttpClientUtil {
 
     public static String getJson(HttpClient client, String url, String json, Map<String, String> headers) {
         HttpEntity reqEntity = null;
-        if(json != null) {
+        if (json != null) {
             reqEntity = new StringEntity(json, ContentType.APPLICATION_JSON);
         }
         ClassicRequestBuilder reqBuilder = ClassicRequestBuilder.get(url)
                 .setEntity(reqEntity);
-        if(headers != null){
+        if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 reqBuilder.addHeader(entry.getKey(), entry.getValue());
             }
         }
         // .setHeader("Authorization", "Basic d2FuZ2ptOlNJWHZZRFF5ZU5Ca1NJQTlDTjJtaG53Sw==")//wangjm:SIXvYDQyeNBkSIA9CN2mhnwK
-        ClassicHttpRequest httpPost = reqBuilder .build();
+        ClassicHttpRequest getReq = reqBuilder.build();
         try {
             HttpClientResponseHandler<String> responseHandler = response -> {
                 // log.info(response.getCode() + " " + response.getReasonPhrase());
@@ -193,12 +201,20 @@ public class HttpClientUtil {
                 }
                 return null;
             };
-            return client.execute(httpPost, responseHandler);
+            return client.execute(getReq, responseHandler);
         } catch (IOException e) {
             // System.err.println(e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }
         return null;
+    }
+
+    public static Map<String, String> buildAuthHeaders(String username, String password) {
+        Map<String, String> headers = new HashMap<>();
+        String userPassword = username + ":" + password;
+        String userPasswordBase64 = Base64.getEncoder().encodeToString(userPassword.getBytes(StandardCharsets.UTF_8));
+        headers.put("Authorization", "Basic " + userPasswordBase64);
+        return headers;
     }
 }

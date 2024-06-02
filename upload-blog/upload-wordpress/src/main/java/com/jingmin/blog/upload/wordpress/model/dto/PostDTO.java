@@ -1,5 +1,6 @@
-package com.jingmin.blog.upload.wordpress.model;
+package com.jingmin.blog.upload.wordpress.model.dto;
 
+import com.jingmin.blog.upload.wordpress.model.Acf;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

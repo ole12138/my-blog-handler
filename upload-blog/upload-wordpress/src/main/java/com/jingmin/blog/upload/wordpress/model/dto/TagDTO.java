@@ -1,4 +1,4 @@
-package com.jingmin.blog.upload.wordpress.model;
+package com.jingmin.blog.upload.wordpress.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CategoryDTO {
+public class TagDTO {
     private String description;
     private String name;
-    private Integer parent;
 }
