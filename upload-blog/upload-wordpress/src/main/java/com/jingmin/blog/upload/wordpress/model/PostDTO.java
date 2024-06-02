@@ -6,13 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 public class PostDTO {
-    private Integer id;
+    private Long id;
 
     private LocalDateTime date;
 
@@ -23,4 +24,6 @@ public class PostDTO {
     private String content;
 
     private Acf acf;
+
+    private List<Long> categories;
 }

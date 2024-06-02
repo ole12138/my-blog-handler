@@ -44,6 +44,8 @@ public class _links {
     private List<WpAttachment> wpAttachment;
     
     private List<WpTerm> wpTerm;
+    
+    private List<WpPostType> wpPostType;
 
     public List<About> getAbout() {
         return about;
@@ -179,6 +181,14 @@ public class _links {
 
     public void setWpTerm(List<WpTerm> wpTerm) {
         this.wpTerm = wpTerm;
+    }
+
+    public List<WpPostType> getWpPostType() {
+        return wpPostType;
+    }
+
+    public void setWpPostType(List<WpPostType> wpPostType) {
+        this.wpPostType = wpPostType;
     }
 
 }

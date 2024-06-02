@@ -2,9 +2,7 @@ package com.jingmin.blog.upload.wordpress;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.jingmin.blog.upload.wordpress.model.Acf;
-import com.jingmin.blog.upload.wordpress.model.Post;
-import com.jingmin.blog.upload.wordpress.model.PostDTO;
+import com.jingmin.blog.upload.wordpress.model.*;
 import com.jingmin.blog.upload.wordpress.util.CommandLineParser;
 import com.jingmin.blog.upload.wordpress.util.HttpClientUtil;
 import com.jingmin.blog.upload.wordpress.util.ObjectMapperUtil;
@@ -94,11 +92,26 @@ public class UploadWordPressApplication {
         String content = FileUtils.readFileToString(file, "UTF-8");
 
         // 标题
-        String title = file.getName().replaceAll("\\.md$", "").replaceAll("\\.markdown$", "");
+        String title = file.getName()
+                .replaceAll("\\.md$", "")
+                .replaceAll("\\.markdown$", "")
+                .replaceAll("\\.html", "");
 
         String postUrl = wpSchema + "://" + wpHost + ":" + wpPort + "/wp-json/wp/v2/posts";
 
-        // todo 这里将文章所有的keywords 都建立起 目录，以及label
+        String categoryUrl = wpSchema + "://" + wpHost + ":" + wpPort + "/wp-json/wp/v2/categories";
+
+        // todo 这里将文章所有的keywords 都建为 分类名，以及Tag
+        Map<String, Category> nameCategoryMap = getNameCategoryMap(categoryUrl);
+        List<Long> categoryIds = new ArrayList<>();
+        for(String keyword: keywords) {
+            Category category = nameCategoryMap.get(keyword);
+            if(category == null) {
+                category = createCategory(categoryUrl, keyword);
+                nameCategoryMap.put(keyword, category);
+            }
+            categoryIds.add(category.getId());
+        }
         // todo 先检查是否已经存在对应的文章
         Map<String, Post> uuidPostMap = getUuidPostMap(postUrl);
 
@@ -107,12 +120,12 @@ public class UploadWordPressApplication {
 
         if (historyPost == null) {
             // 新增
-            post = createPost(postUrl, uuid, title, content);
+            post = createPost(postUrl, uuid, title, content, categoryIds);
         } else {
             // 更新
-            Integer postId = historyPost.getId().intValue();
+            Long postId = historyPost.getId();
             String updateUrl = postUrl + "/" + postId;
-            post = updatePost(updateUrl, postId, uuid, title, content);
+            post = updatePost(updateUrl, postId, uuid, title, content, categoryIds);
         }
 
         if (post == null) {
@@ -126,10 +139,18 @@ public class UploadWordPressApplication {
         System.out.println(post.getAcf().getMdUuid());
     }
 
+    private Category createCategory(String categoryUrl, String name) throws JsonProcessingException {
+        CategoryDTO categoryDTO = CategoryDTO.builder()
+                .name(name)
+                .build();
+        String categoryJson = ObjectMapperUtil.SNAKE.writeValueAsString(categoryDTO);
+        return HttpClientUtil.postJson(httpClient, categoryUrl, categoryJson, buildAuthHeaders(), Category.class);
+    }
+
     /**
      * 新增post
      */
-    private Post createPost(String postUrl, String uuid, String title, String content) throws JsonProcessingException {
+    private Post createPost(String postUrl, String uuid, String title, String content, List<Long> catogoryIds) throws JsonProcessingException {
         PostDTO postDTO = PostDTO.builder()
                 .acf(Acf.builder().mdUuid(uuid).build())
                 .title(title)
@@ -142,13 +163,14 @@ public class UploadWordPressApplication {
         return HttpClientUtil.postJson(httpClient, postUrl, postJson, buildAuthHeaders(), Post.class);
     }
 
-    private Post updatePost(String postUrl,Integer postId, String uuid, String title, String content) throws JsonProcessingException {
+    private Post updatePost(String postUrl,Long postId, String uuid, String title, String content, List<Long> catogoryIds) throws JsonProcessingException {
         PostDTO postDTO = PostDTO.builder()
                 .id(postId)
                 .acf(Acf.builder().mdUuid(uuid).build())
                 .title(title)
                 .content(content)
                 .status("publish")
+                .categories(catogoryIds)
                 .build();
         String postJson = ObjectMapperUtil.SNAKE.writeValueAsString(postDTO);
         // System.out.println(postJson);
@@ -161,6 +183,35 @@ public class UploadWordPressApplication {
         String userPasswordBase64 = Base64.getEncoder().encodeToString(userPassword.getBytes(StandardCharsets.UTF_8));
         headers.put("Authorization", "Basic " + userPasswordBase64);
         return headers;
+    }
+
+    private Map<String, Category> getNameCategoryMap(String categoryUrl) {
+        //先获取总页数
+        int page = 1;
+        String appendArgs = (!categoryUrl.contains("?") ? "?" : ":") +
+                "page=" + page +
+                "&per_page=50";
+        String url = categoryUrl + appendArgs;
+        Integer totalPages = Integer.parseInt(HttpClientUtil.getRespHeader(httpClient, url, null, "X-WP-TotalPages"));
+
+        //依次获取每页数据
+        List<Category> categories = new ArrayList<>();
+        for(page = 1; page <= totalPages; page++) {
+            appendArgs = (!categoryUrl.contains("?") ? "?" : ":") +
+                    "page=" + page +
+                    "&per_page=50";
+            url = categoryUrl + appendArgs;
+
+            List<Category> tempPosts = HttpClientUtil.getJson(httpClient, url, null, buildAuthHeaders(), new TypeReference<List<Category>>() {
+            });
+            if (tempPosts != null && !tempPosts.isEmpty()) {
+                categories.addAll(tempPosts);
+            }
+            // System.out.printf("Page: %d, pageSize: %d\n", page, tempPosts != null ? tempPosts.size():0);
+        }
+        return categories.stream()
+                .filter(category -> category != null && category.getName() != null)
+                .collect(Collectors.toMap(category -> category.getName(), category -> category));
     }
 
     /**
