@@ -26,4 +26,6 @@ public class PostDTO {
     private Acf acf;
 
     private List<Long> categories;
+
+    private List<Long> tags;
 }

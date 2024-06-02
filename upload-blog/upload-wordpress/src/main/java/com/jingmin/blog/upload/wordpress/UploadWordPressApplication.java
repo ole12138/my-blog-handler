@@ -101,7 +101,9 @@ public class UploadWordPressApplication {
 
         String categoryUrl = wpSchema + "://" + wpHost + ":" + wpPort + "/wp-json/wp/v2/categories";
 
-        // todo 这里将文章所有的keywords 都建为 分类名，以及Tag
+        String tagUrl = wpSchema + "://" + wpHost + ":" + wpPort + "/wp-json/wp/v2/tags";
+
+        // 这里将文章所有的keyword 都建为 Category分类
         Map<String, Category> nameCategoryMap = getNameCategoryMap(categoryUrl);
         List<Long> categoryIds = new ArrayList<>();
         for(String keyword: keywords) {
@@ -112,20 +114,29 @@ public class UploadWordPressApplication {
             }
             categoryIds.add(category.getId());
         }
-        // todo 先检查是否已经存在对应的文章
+        // 这里将文章所有的keyword 都建为 Tag标签
+        Map<String, Tag> nameTagMap = getNameTagMap(tagUrl);
+        List<Long> tagIds = new ArrayList<>();
+        for(String keyword: keywords) {
+            Tag tag = nameTagMap.get(keyword);
+            if(tag == null) {
+                tag = createTag(tagUrl, keyword);
+                nameTagMap.put(keyword, tag);
+            }
+            tagIds.add(tag.getId());
+        }
+        //检查是否已经存在对应的文章
         Map<String, Post> uuidPostMap = getUuidPostMap(postUrl);
-
         Post historyPost = uuidPostMap.get(uuid);
         Post post = null;
-
         if (historyPost == null) {
             // 新增
-            post = createPost(postUrl, uuid, title, content, categoryIds);
+            post = createPost(postUrl, uuid, title, content, categoryIds, tagIds);
         } else {
             // 更新
             Long postId = historyPost.getId();
             String updateUrl = postUrl + "/" + postId;
-            post = updatePost(updateUrl, postId, uuid, title, content, categoryIds);
+            post = updatePost(updateUrl, postId, uuid, title, content, categoryIds, tagIds);
         }
 
         if (post == null) {
@@ -147,15 +158,25 @@ public class UploadWordPressApplication {
         return HttpClientUtil.postJson(httpClient, categoryUrl, categoryJson, buildAuthHeaders(), Category.class);
     }
 
+    private Tag createTag(String tagUrl, String name) throws JsonProcessingException {
+        TagDTO tagDTO = TagDTO.builder()
+                .name(name)
+                .build();
+        String tagJson = ObjectMapperUtil.SNAKE.writeValueAsString(tagDTO);
+        return HttpClientUtil.postJson(httpClient, tagUrl, tagJson, buildAuthHeaders(), Tag.class);
+    }
+
     /**
      * 新增post
      */
-    private Post createPost(String postUrl, String uuid, String title, String content, List<Long> catogoryIds) throws JsonProcessingException {
+    private Post createPost(String postUrl, String uuid, String title, String content, List<Long> catogoryIds, List<Long> tagIds) throws JsonProcessingException {
         PostDTO postDTO = PostDTO.builder()
                 .acf(Acf.builder().mdUuid(uuid).build())
                 .title(title)
                 .content(content)
                 .status("publish")
+                .categories(catogoryIds)
+                .tags(tagIds)
                 .build();
         String postJson = ObjectMapperUtil.SNAKE.writeValueAsString(postDTO);
         // System.out.println(postJson);
@@ -163,7 +184,7 @@ public class UploadWordPressApplication {
         return HttpClientUtil.postJson(httpClient, postUrl, postJson, buildAuthHeaders(), Post.class);
     }
 
-    private Post updatePost(String postUrl,Long postId, String uuid, String title, String content, List<Long> catogoryIds) throws JsonProcessingException {
+    private Post updatePost(String postUrl,Long postId, String uuid, String title, String content, List<Long> catogoryIds, List<Long> tagIds) throws JsonProcessingException {
         PostDTO postDTO = PostDTO.builder()
                 .id(postId)
                 .acf(Acf.builder().mdUuid(uuid).build())
@@ -171,6 +192,7 @@ public class UploadWordPressApplication {
                 .content(content)
                 .status("publish")
                 .categories(catogoryIds)
+                .tags(tagIds)
                 .build();
         String postJson = ObjectMapperUtil.SNAKE.writeValueAsString(postDTO);
         // System.out.println(postJson);
@@ -183,6 +205,35 @@ public class UploadWordPressApplication {
         String userPasswordBase64 = Base64.getEncoder().encodeToString(userPassword.getBytes(StandardCharsets.UTF_8));
         headers.put("Authorization", "Basic " + userPasswordBase64);
         return headers;
+    }
+
+    private Map<String, Tag> getNameTagMap(String tagUrl) {
+        //先获取总页数
+        int page = 1;
+        String appendArgs = (!tagUrl.contains("?") ? "?" : ":") +
+                "page=" + page +
+                "&per_page=50";
+        String url = tagUrl + appendArgs;
+        Integer totalPages = Integer.parseInt(HttpClientUtil.getRespHeader(httpClient, url, null, "X-WP-TotalPages"));
+
+        //依次获取每页数据
+        List<Tag> tags = new ArrayList<>();
+        for(page = 1; page <= totalPages; page++) {
+            appendArgs = (!tagUrl.contains("?") ? "?" : ":") +
+                    "page=" + page +
+                    "&per_page=50";
+            url = tagUrl + appendArgs;
+
+            List<Tag> tempTags = HttpClientUtil.getJson(httpClient, url, null, buildAuthHeaders(), new TypeReference<List<Tag>>() {
+            });
+            if (tempTags != null && !tempTags.isEmpty()) {
+                tags.addAll(tempTags);
+            }
+            // System.out.printf("Page: %d, pageSize: %d\n", page, tempPosts != null ? tempPosts.size():0);
+        }
+        return tags.stream()
+                .filter(tag -> tag != null && tag.getName() != null)
+                .collect(Collectors.toMap(tag -> tag.getName(), tag -> tag));
     }
 
     private Map<String, Category> getNameCategoryMap(String categoryUrl) {
@@ -202,10 +253,10 @@ public class UploadWordPressApplication {
                     "&per_page=50";
             url = categoryUrl + appendArgs;
 
-            List<Category> tempPosts = HttpClientUtil.getJson(httpClient, url, null, buildAuthHeaders(), new TypeReference<List<Category>>() {
+            List<Category> tempCategories = HttpClientUtil.getJson(httpClient, url, null, buildAuthHeaders(), new TypeReference<List<Category>>() {
             });
-            if (tempPosts != null && !tempPosts.isEmpty()) {
-                categories.addAll(tempPosts);
+            if (tempCategories != null && !tempCategories.isEmpty()) {
+                categories.addAll(tempCategories);
             }
             // System.out.printf("Page: %d, pageSize: %d\n", page, tempPosts != null ? tempPosts.size():0);
         }
