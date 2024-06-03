@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class WordPressUtil {
     /**
      * 创建分类
+     * reference: <a href="https://developer.wordpress.org/rest-api/reference/categories/"/>
      */
     public static Category createCategory(HttpClient client, Map<String, String> authHeaders, String categoryUrl, String name) throws JsonProcessingException {
         CategoryDTO categoryDTO = CategoryDTO.builder()
@@ -30,6 +31,7 @@ public class WordPressUtil {
 
     /**
      * 创建标签
+     * reference: <a href="https://developer.wordpress.org/rest-api/reference/tags/"/>
      */
     public static Tag createTag(HttpClient client, Map<String, String> authHeaders, String tagUrl, String name) throws JsonProcessingException {
         TagDTO tagDTO = TagDTO.builder()
@@ -41,6 +43,7 @@ public class WordPressUtil {
 
     /**
      * 新增post
+     * reference: <a href="https://developer.wordpress.org/rest-api/reference/posts/"/>
      */
     public static Post createPost(HttpClient client, Map<String, String> authHeaders, String postUrl, String uuid, String title, String content, List<Long> catogoryIds, List<Long> tagIds) throws JsonProcessingException {
         PostDTO postDTO = PostDTO.builder()
@@ -59,6 +62,7 @@ public class WordPressUtil {
 
     /**
      * 更新post
+     * reference: <a href="https://developer.wordpress.org/rest-api/reference/tags/"/>
      */
     public static Post updatePost(HttpClient client, Map<String, String> authHeaders, String postUrl, Long postId, String uuid, String title, String content, List<Long> catogoryIds, List<Long> tagIds) throws JsonProcessingException {
         PostDTO postDTO = PostDTO.builder()
@@ -76,6 +80,10 @@ public class WordPressUtil {
         return HttpClientUtil.postJson(client, postUrl, postJson, authHeaders, Post.class);
     }
 
+    /**
+     * 获取所有的tag, 以map(name, tag)的方式返回
+     * 参考： <a href="https://developer.wordpress.org/rest-api/reference/tags/"/>
+     */
     public static Map<String, Tag> getNameTagMap(HttpClient client, Map<String, String> authHeaders, String tagUrl) {
         // 先获取总页数
         int page = 1;
@@ -105,6 +113,10 @@ public class WordPressUtil {
                 .collect(Collectors.toMap(tag -> tag.getName(), tag -> tag));
     }
 
+    /**
+     * 查询所有的分类catogory, 以map(name, catogory)的方式返回、
+     * 参考： <a href="https://developer.wordpress.org/rest-api/reference/categories/"/>
+     */
     public static Map<String, Category> getNameCategoryMap(HttpClient client, Map<String, String> authHeaders, String categoryUrl) {
         // 先获取总页数
         int page = 1;
