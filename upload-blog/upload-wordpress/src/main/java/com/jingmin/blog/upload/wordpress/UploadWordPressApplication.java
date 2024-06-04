@@ -18,6 +18,7 @@ import org.apache.hc.client5.http.classic.HttpClient;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -75,7 +76,7 @@ public class UploadWordPressApplication {
             }
         }
         String filePath = commandLine.getArgs()[0];
-        File file = new File(filePath);
+        File file = Path.of(filePath).toFile();
         handleFile(file, uuid, keywords);
 
     }

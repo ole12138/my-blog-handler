@@ -13,6 +13,7 @@ import org.commonmark.renderer.markdown.MarkdownRenderer;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 
 
@@ -60,7 +61,7 @@ public class GetFrontMatterApplication {
             }
         }
         String filePath = commandLine.getArgs()[0];
-        File file = new File(filePath);
+        File file = Path.of(filePath).toFile();
         handleFile(file, yamlKey);
 
     }

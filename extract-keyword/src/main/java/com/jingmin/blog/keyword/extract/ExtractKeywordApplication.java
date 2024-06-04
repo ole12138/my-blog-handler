@@ -8,6 +8,7 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 
 
@@ -50,7 +51,7 @@ public class ExtractKeywordApplication {
             }
         }
         String filePath = commandLine.getArgs()[0];
-        File file = new File(filePath);
+        File file = Path.of(filePath).toFile();
         handleFile(file, printAccessToken);
 
     }
@@ -81,7 +82,7 @@ public class ExtractKeywordApplication {
         }
         //使用百度智能云-自然语言处理技术NLP-文章标签接口
         BaiduApi.Keywords keywords = BaiduApi.getKeywords(content, title, accessToken);
-        if(keywords != null) {
+        if(keywords != null && keywords.getItems() != null) {
             //依次打印
             for (BaiduApi.Keywords.Item item : keywords.getItems()) {
                 System.out.printf("%s %f\n",item.getTag(), item.getScore());
