@@ -1,8 +1,8 @@
 # my-blog-handler
 
 文章提取关键字,
-处理yaml front matter信息, 
-markdown导出为html, 
+处理yaml front matter信息,
+markdown导出为html,
 文章上传到指定博客网站等
 
 ## 文章提取关键字
@@ -45,9 +45,14 @@ pandoc --mathjax -f markdown -t html $temp -o out/${temp%.*}.html
 
 ## 文章上传到wordpress
 
-//todo 暂未处理keyword 信息
-
 ````shell
 /usr/lib/jvm/java-22-jdk/bin/java -jar ./upload-blog/upload-wordpress/target/upload-wordpress-1.0-SNAPSHOT.jar -k keyword1 -k keyword2 -k keyword3 -u 60754177-c85b-4458-a69f-dafffb9c1610 ./out/test.html 2>/dev/null
 
 ````
+
+
+## 启动整个工具链
+
+```shell
+./script/test.sh ./ out
+```
