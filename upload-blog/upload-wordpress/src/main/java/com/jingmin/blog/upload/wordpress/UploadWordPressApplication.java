@@ -39,8 +39,6 @@ public class UploadWordPressApplication {
 
     private HttpClient httpClient;
 
-    private static String wordpressUrl = "https://wordpress.ole12138.cn/wp-json/wp/v2/posts";
-
     public static void main(String[] args) throws IOException {
         UploadWordPressApplication application = new UploadWordPressApplication();
         application.run(args);

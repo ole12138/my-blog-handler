@@ -54,5 +54,8 @@ pandoc --mathjax -f markdown -t html $temp -o out/${temp%.*}.html
 ## 启动整个工具链
 
 ```shell
-./script/test.sh ./ out
+WORDPRESS_HOST=your.wordpress.domain \
+WORDPRESS_USER=your_your_name \
+WORDPRESS_PASSWORD=your_password \
+./script/test.sh path_of_md_dir_or_file temp_path_of_html_dir
 ```
