@@ -17,6 +17,7 @@ public class CommandLineParser {
         Options options = new Options();
         options.addOption(new Option("u", "uuid", true, "UUID of the blog"));
         options.addOption(new Option("k", "keyword", true, "Keyword of the blog. This option could be specified multiple times."));
+        options.addOption(new Option("c", "category", true, "Category of the blog."));
         options.addOption(new Option("h", "help", false, "print this message"));
         // automatically generate the help statement
         HelpFormatter formatter = new HelpFormatter();

@@ -9,11 +9,12 @@ import com.jingmin.blog.upload.wordpress.model.Tag;
 import com.jingmin.blog.upload.wordpress.model.dto.CategoryDTO;
 import com.jingmin.blog.upload.wordpress.model.dto.PostDTO;
 import com.jingmin.blog.upload.wordpress.model.dto.TagDTO;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.classic.HttpClient;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class WordPressUtil {
@@ -21,9 +22,10 @@ public class WordPressUtil {
      * 创建分类
      * reference: <a href="https://developer.wordpress.org/rest-api/reference/categories/"/>
      */
-    public static Category createCategory(HttpClient client, Map<String, String> authHeaders, String categoryUrl, String name) throws JsonProcessingException {
+    public static Category createCategory(HttpClient client, Map<String, String> authHeaders, String categoryUrl, String name, Long parentId) throws JsonProcessingException {
         CategoryDTO categoryDTO = CategoryDTO.builder()
                 .name(name)
+                .parent(parentId == null ? null : parentId.intValue())
                 .build();
         String categoryJson = ObjectMapperUtil.SNAKE.writeValueAsString(categoryDTO);
         return HttpClientUtil.postJson(client, categoryUrl, categoryJson, authHeaders, Category.class);
@@ -114,10 +116,54 @@ public class WordPressUtil {
     }
 
     /**
-     * 查询所有的分类catogory, 以map(name, catogory)的方式返回、
+     * 将传入的路径转为多层级目录
+     * 比如传入 “aa/bb/cc”， 则将在wordpress中生成“aa”，“bb”，“cc” 三个目录， 且“aa”是“bb”的父级， “bb”是“cc”的父级
+     */
+    public static List<Category> generateCategoryOfPath(HttpClient client, Map<String, String> authHeaders, String categoryUrl, String categoryPath) throws JsonProcessingException {
+        // 将传入的category按“/”分割
+        String[] splits = Arrays.stream(Optional.ofNullable(categoryPath).orElse("").split("/"))
+                .filter(StringUtils::isNotBlank)
+                .toArray(String[]::new);
+        if (splits.length == 0) {
+            return Collections.emptyList();
+        }
+
+        Map<String, List<Category>> nameCategoryMap = getNameCategoryMultiMap(client, authHeaders, categoryUrl);
+
+        // System.out.println("CateMap: " + nameCategoryMap.keySet());
+
+        List<Category> cates = new ArrayList<>();
+        Long pid = null;
+        for (int i = 0; i < splits.length; i++) {
+            String cateName = splits[i];
+            // System.out.println("CateName: " + cateName);
+            List<Category> namedCates = nameCategoryMap.getOrDefault(cateName, new ArrayList<>());
+            // System.out.println("NamedCates: " + Arrays.toString(namedCates.toArray()));
+            nameCategoryMap.put(cateName, namedCates);
+            Category cate = null;
+
+            BiPredicate<Category, Long> withParentId = (c, parentId) -> {
+                boolean bothTopLevel = parentId == null && (c.getParent() == null || c.getParent() == 0);
+                boolean sameParentId = parentId != null && c.getParent() != null && parentId.equals(c.getParent());
+                return bothTopLevel || sameParentId;
+            };
+            final Long curPid = pid;
+            cate = namedCates.stream().filter(c -> withParentId.test(c, curPid)).findFirst().orElse(null);
+            if (cate == null) {
+                cate = WordPressUtil.createCategory(client, authHeaders, categoryUrl, cateName, pid);
+                namedCates.add(cate);
+            }
+            cates.add(cate);
+            pid = cate.getId();
+        }
+        return cates;
+    }
+
+    /**
+     * 查询所有的分类catogory, 以map(name, list(catogory))的方式返回、
      * 参考： <a href="https://developer.wordpress.org/rest-api/reference/categories/"/>
      */
-    public static Map<String, Category> getNameCategoryMap(HttpClient client, Map<String, String> authHeaders, String categoryUrl) {
+    public static Map<String, List<Category>> getNameCategoryMultiMap(HttpClient client, Map<String, String> authHeaders, String categoryUrl) {
         // 先获取总页数
         int page = 1;
         String appendArgs = (!categoryUrl.contains("?") ? "?" : ":") +
@@ -127,6 +173,7 @@ public class WordPressUtil {
         Integer totalPages = Integer.parseInt(HttpClientUtil.getRespHeader(client, authHeaders, url, null, "X-WP-TotalPages"));
 
         // 依次获取每页数据
+        Map<String, List<Category>> nameCategoryMultiMap = new HashMap<>();
         List<Category> categories = new ArrayList<>();
         for (page = 1; page <= totalPages; page++) {
             appendArgs = (!categoryUrl.contains("?") ? "?" : ":") +
@@ -137,13 +184,17 @@ public class WordPressUtil {
             List<Category> tempCategories = HttpClientUtil.getJson(client, url, null, authHeaders, new TypeReference<List<Category>>() {
             });
             if (tempCategories != null && !tempCategories.isEmpty()) {
-                categories.addAll(tempCategories);
+                for (Category category : tempCategories) {
+                    String name = category.getName();
+                    List<Category> namedCategories = nameCategoryMultiMap.get(name);
+                    namedCategories = namedCategories == null ? new ArrayList<>() : namedCategories;
+                    namedCategories.add(category);
+                    nameCategoryMultiMap.put(category.getName(), namedCategories);
+                }
             }
             // System.out.printf("Page: %d, pageSize: %d\n", page, tempPosts != null ? tempPosts.size():0);
         }
-        return categories.stream()
-                .filter(category -> category != null && category.getName() != null)
-                .collect(Collectors.toMap(category -> category.getName(), category -> category));
+        return nameCategoryMultiMap;
     }
 
     /**

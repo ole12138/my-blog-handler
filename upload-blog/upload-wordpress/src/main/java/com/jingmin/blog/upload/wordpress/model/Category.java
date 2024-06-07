@@ -1,11 +1,13 @@
 
 package com.jingmin.blog.upload.wordpress.model;
 
+import lombok.ToString;
+
 import java.util.List;
 
 
 
-
+@ToString
 @SuppressWarnings("unused")
 public class Category {
 

@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.classic.HttpClient;
 
 import java.io.*;
@@ -61,6 +62,7 @@ public class UploadWordPressApplication {
 
     public void run(String[] args) throws IOException {
         CommandLine commandLine = CommandLineParser.parseArgs(args);
+        String category = null;
         String uuid = UUID.randomUUID().toString();
         List<String> keywords = new ArrayList<>();
         for (Option option : commandLine.getOptions()) {
@@ -72,17 +74,21 @@ public class UploadWordPressApplication {
             if ("u".equals(k)) {
                 uuid = v;
             }
+            if("c".equals(k)) {
+                category = v;
+            }
         }
         String filePath = commandLine.getArgs()[0];
         File file = Path.of(filePath).toFile();
-        handleFile(file, uuid, keywords);
+        handleFile(file, uuid, category, keywords);
 
     }
 
     /**
      * 处理单个markdown文件
      */
-    private void handleFile(File file, String uuid, List<String> keywords) throws IOException {
+    private void handleFile(File file, String uuid, String category, List<String> keywords) throws IOException {
+        System.out.println("Category: " + category);
         if (!file.exists()) {
             System.err.println("File does not exist");
             return;
@@ -106,18 +112,10 @@ public class UploadWordPressApplication {
 
         Map<String, String> authHeaders = HttpClientUtil.buildAuthHeaders(wpUser, wpPassword);
 
-        // 将文章所有的keyword 都建为 Category分类
-        Map<String, Category> nameCategoryMap = WordPressUtil.getNameCategoryMap(httpClient, authHeaders, categoryUrl);
-        List<Long> categoryIds = new ArrayList<>();
-        for (String keyword : keywords) {
-            Category category = nameCategoryMap.get(keyword);
-            if (category == null) {
-                category = WordPressUtil.createCategory(httpClient, authHeaders, categoryUrl, keyword);
-                nameCategoryMap.put(keyword, category);
-            }
-            categoryIds.add(category.getId());
-        }
+        List<Category> categories = WordPressUtil.generateCategoryOfPath(httpClient, authHeaders, categoryUrl, category);
+        List<Long> lastLevelIds = categories.isEmpty() ? new ArrayList<>(): Collections.singletonList(categories.getLast().getId());
 
+        System.out.println(Arrays.toString(lastLevelIds.toArray()));
         // 将文章所有的keyword 都建为 Tag标签
         Map<String, Tag> nameTagMap = WordPressUtil.getNameTagMap(httpClient, authHeaders, tagUrl);
         List<Long> tagIds = new ArrayList<>();
@@ -136,12 +134,12 @@ public class UploadWordPressApplication {
         Post post = null;
         if (historyPost == null) {
             // 新增
-            post = WordPressUtil.createPost(httpClient, authHeaders, postUrl, uuid, title, content, categoryIds, tagIds);
+            post = WordPressUtil.createPost(httpClient, authHeaders, postUrl, uuid, title, content, lastLevelIds, tagIds);
         } else {
             // 更新
             Long postId = historyPost.getId();
             String updateUrl = postUrl + "/" + postId;
-            post = WordPressUtil.updatePost(httpClient, authHeaders, updateUrl, postId, uuid, title, content, categoryIds, tagIds);
+            post = WordPressUtil.updatePost(httpClient, authHeaders, updateUrl, postId, uuid, title, content, lastLevelIds, tagIds);
         }
 
         if (post == null) {

@@ -108,19 +108,28 @@ upload_to_wordpress() {
   local file_ptr=
   local md_uuid=
   local keys=
+  local cate_path=
+  local cate_path_ptr=
 
   file="$1"
   # used like a pointer
   # shellcheck disable=SC2209
   file_ptr=file
   md_uuid=$2
+  cate_path="$3"
+  if [ "$cate_path" == "." ] || [ "$cate_path" == ""  ]; then
+    cate_path=""
+  fi
+  cate_path_ptr=cate_path
 
-  shift 2
+  echo $cate_path
+
+  shift 3
   # generate "-k k1 -k k2 -k k3 ..."
   keys=$(echo "$@"| xargs -I {} echo -n "-k {} ")
   # shellcheck disable=SC2068
   # shellcheck disable=SC2294
-  eval $JAVA $JAVA_OPTS_UP_WP -jar $UPLOAD_WORDPRESS -u "$md_uuid" ${keys[@]} "\$$file_ptr"
+  eval $JAVA $JAVA_OPTS_UP_WP -jar $UPLOAD_WORDPRESS -u "$md_uuid" -c "\"\$$cate_path_ptr\"" ${keys[@]} "\$$file_ptr"
   return $?
 }
 
@@ -225,7 +234,7 @@ main() {
     markdown_to_html $in_file $out_file
     print_ret_status $? "$in_file => $out_file" || continue
 
-    upload_to_wordpress $out_file $md_uuid "$keyword_names"
+    upload_to_wordpress $out_file $md_uuid "$rela_dir" "$keyword_names"
     print_ret_status $? "$in_file: Uploading to wordpress" || continue
 
     #echo
