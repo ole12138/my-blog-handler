@@ -148,5 +148,21 @@ WORDPRESS_PASSWORD=your_password \
 ```
 
 
-For Docker scenario, There is no shell script now.
+
+Of course, You could build a docker image. All in one image:
+
+```shell
+# build
+#docker build --build-arg HTTP_PROXY=http://192.168.1.7:8889 --build-arg HTTPS_PROXY=http://192.168.1.7:8889 -t w784319947/blog-handler .
+docker build -t w784319947/blog-handler .
+# ls
+docker image ls
+# run
+docker run --rm -e WORDPRESS_HOST=your.wordpress.domain -v /home/wangjm/Nextcloud/mynotebook:/workdir/input w784319947/blog-handler
+# push(Optional)
+docker image push w784319947/blog-handler
+```
+
+//todo It seems that ctrl+c would not be handled. Should be fixed.
+
 

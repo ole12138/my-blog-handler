@@ -2,8 +2,8 @@
 
 #FROM --platform=$BUILDPLATFORM maven:3.9.7-eclipse-temurin-22 AS build
 FROM maven:3.9.7-eclipse-temurin-22 AS build-dependencies
-WORKDIR /workdir/server
-COPY . /workdir/server/
+WORKDIR /builddir
+COPY . /builddir/
 RUN echo mvn -verison
 RUN echo '\n\
 <settings>\n\
@@ -16,61 +16,41 @@ RUN echo '\n\
     </mirror>\n\
   </mirrors>\n\
 </settings>\n\
-'>/workdir/server/m2_settings.xml
+'>/builddir/m2_settings.xml
 #ARG MAVEN_OPTS="-Dmaven.repo.remote=https://maven.aliyun.com/repository/public,https://maven.aliyun.com/repository/spring,https://maven.aliyun.com/repository/spring-plugin,https://repo.maven.apache.org/maven2"
-RUN mvn --settings /workdir/server/m2_settings.xml clean package -X
+RUN mvn --settings /builddir/m2_settings.xml clean package -X
 
-#COPY src /workdir/server/src
-#
-#RUN mvn --batch-mode clean compile assembly:single
-#
-#FROM build AS dev-envs
-#RUN <<EOF
-#apt-get update
-#apt-get install -y --no-install-recommends git
-#EOF
-#
-#RUN <<EOF
-#useradd -s /bin/bash -m vscode
-#groupadd docker
-#usermod -aG docker vscode
-#EOF
-## install Docker tools (cli, buildx, compose)
-#COPY --from=gloursdocker/docker / /
-#CMD ["java", "-jar", "target/app.jar" ]
-#
-######################################################################################
-#FROM eclipse-temurin:17-jre-focal
-FROM bellsoft/liberica-runtime-container:jre-21-crac-slim-musl as extract-keyword
-ARG DEPENDENCY=/workdir/server/extract-keyword/target
-#EXPOSE 8080
-COPY --from=build-dependencies ${DEPENDENCY}/extract-keyword-1.0-SNAPSHOT.jar /app.jar
-#CMD java -jar /app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
 
 
 ######################################################################################
-FROM bellsoft/liberica-runtime-container:jre-21-crac-slim-musl as get-front-matter
-ARG DEPENDENCY=/workdir/server/handle-front-matter/get-front-matter/target
-#EXPOSE 8080
-COPY --from=build-dependencies ${DEPENDENCY}/get-front-matter-1.0-SNAPSHOT.jar /app.jar
-#CMD java -jar /app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+#extract-keyword
+#FROM bellsoft/liberica-runtime-container:jre-21-crac-slim-musl
+FROM eclipse-temurin:21-jdk-jammy
+ARG DEPENDENCY=/builddir
+ARG BASEDIR=/workdir
+RUN mkdir -p $BASEDIR/input
+WORKDIR $BASEDIR
+COPY --from=build-dependencies ${DEPENDENCY}/extract-keyword/target/extract-keyword-1.0-SNAPSHOT.jar $BASEDIR/extract-keyword/target/extract-keyword-1.0-SNAPSHOT.jar
 
+COPY --from=build-dependencies ${DEPENDENCY}/handle-front-matter/get-front-matter/target/get-front-matter-1.0-SNAPSHOT.jar $BASEDIR/handle-front-matter/get-front-matter/target/get-front-matter-1.0-SNAPSHOT.jar
 
-######################################################################################
-FROM bellsoft/liberica-runtime-container:jre-21-crac-slim-musl as set-front-matter
-ARG DEPENDENCY=/workdir/server/handle-front-matter/set-front-matter/target
-#EXPOSE 8080
-COPY --from=build-dependencies ${DEPENDENCY}/set-front-matter-1.0-SNAPSHOT.jar /app.jar
-#CMD java -jar /app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+COPY --from=build-dependencies ${DEPENDENCY}/handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar $BASEDIR/handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar
 
+#Add pandoc symlinks and install runtime dependencies
+RUN apt-get -q --no-allow-insecure-repositories update \
+  && DEBIAN_FRONTEND=noninteractive \
+     apt-get install --assume-yes --no-install-recommends pandoc
 
-######################################################################################
-FROM bellsoft/liberica-runtime-container:jre-21-crac-slim-musl as upload-wordpress
-ARG DEPENDENCY=/workdir/server/upload-blog/upload-wordpress/target
-#EXPOSE 8080
-COPY --from=build-dependencies ${DEPENDENCY}/upload-wordpress-1.0-SNAPSHOT.jar /app.jar
-#CMD java -jar /app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+COPY --from=build-dependencies ${DEPENDENCY}/upload-blog/upload-wordpress/target/upload-wordpress-1.0-SNAPSHOT.jar $BASEDIR/upload-blog/upload-wordpress/target/upload-wordpress-1.0-SNAPSHOT.jar
+
+ENV JAVA=/opt/java/openjdk/bin/java
+ENV PANDOC=pandoc
+ENV EXTRACT_KEYWORD_JAR=$BASEDIR/extract-keyword/target/extract-keyword-1.0-SNAPSHOT.jar
+ENV GET_FRONT_MATTER=$BASEDIR/handle-front-matter/get-front-matter/target/get-front-matter-1.0-SNAPSHOT.jar
+ENV SET_FRONT_MATTER=$BASEDIR/handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar
+ENV UPLOAD_WORDPRESS=$BASEDIR/handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar
+
+COPY ./script/test.sh $BASEDIR/entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["./input", "./out"]

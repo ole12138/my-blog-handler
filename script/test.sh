@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # todo 适配程序所在位置
-JAVA=/usr/lib/jvm/java-22-jdk/bin/java
+JAVA=${JAVA:-/usr/lib/jvm/java-22-jdk/bin/java}
 PANDOC=pandoc
-EXTRACT_KEYWORD_JAR=extract-keyword/target/extract-keyword-1.0-SNAPSHOT.jar
-GET_FRONT_MATTER=handle-front-matter/get-front-matter/target/get-front-matter-1.0-SNAPSHOT.jar
-SET_FRONT_MATTER=handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar
-UPLOAD_WORDPRESS=upload-blog/upload-wordpress/target/upload-wordpress-1.0-SNAPSHOT.jar
-JAVA_OPTS_UP_WP=
+EXTRACT_KEYWORD_JAR=${EXTRACT_KEYWORD_JAR:-extract-keyword/target/extract-keyword-1.0-SNAPSHOT.jar}
+GET_FRONT_MATTER=${GET_FRONT_MATTER:-handle-front-matter/get-front-matter/target/get-front-matter-1.0-SNAPSHOT.jar}
+SET_FRONT_MATTER=${SET_FRONT_MATTER:-handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar}
+UPLOAD_WORDPRESS=${UPLOAD_WORDPRESS:-upload-blog/upload-wordpress/target/upload-wordpress-1.0-SNAPSHOT.jar}
+JAVA_OPTS_UP_WP=${JAVA_OPTS_UP_WP:-}
 
 
 #recursive read_dir
