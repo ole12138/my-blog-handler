@@ -147,12 +147,20 @@ print_ret_status() {
   return $ret
 }
 
+function ctrl_c() {
+        echo "** Trapped CTRL-C"
+        exit 1
+}
+
 main() {
   # two args must be given
   if [ ! -n "$1" ] || [ ! -n "$2" ] ; then
     echo "$0 <markdown_dir_or_file> <out_dir>"
     exit 1
   fi
+
+ # trap ctrl-c and call ctrl_c()
+ trap ctrl_c INT
 
   #get absolute path
   abs1=$(readlink -f $1)

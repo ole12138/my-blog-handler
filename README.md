@@ -152,7 +152,9 @@ WORDPRESS_PASSWORD=your_password \
 Of course, You could build a docker image. All in one image:
 
 ```shell
-# build
+# build jar
+mvn clean package
+# build image
 #docker build --build-arg HTTP_PROXY=http://192.168.1.7:8889 --build-arg HTTPS_PROXY=http://192.168.1.7:8889 -t w784319947/blog-handler .
 docker build -t w784319947/blog-handler .
 # ls
@@ -163,6 +165,12 @@ docker run --rm -e WORDPRESS_HOST=your.wordpress.domain -v /home/wangjm/Nextclou
 docker image push w784319947/blog-handler
 ```
 
-//todo It seems that ctrl+c would not be handled. Should be fixed.
+
+//参考： https://stackoverflow.com/questions/31350335/docker-not-responding-to-ctrlc-in-terminal
+//Docker环境下， exec格式的命令，默认作为PID为1的进程， 并没有常规linux系统中init进程。当涉及子进程时，ctrl+c （INT）等信号默认并不会传递给子进程。
+//看到三种处理方式
+// 1. trap手动处理信号
+// 2. 运行时添加 -it --init参数
+// 3. 使用dumb-init等轻量级init进程工具。
 
 
