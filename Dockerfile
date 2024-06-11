@@ -48,7 +48,7 @@ ENV PANDOC=pandoc
 ENV EXTRACT_KEYWORD_JAR=$BASEDIR/extract-keyword/target/extract-keyword-1.0-SNAPSHOT.jar
 ENV GET_FRONT_MATTER=$BASEDIR/handle-front-matter/get-front-matter/target/get-front-matter-1.0-SNAPSHOT.jar
 ENV SET_FRONT_MATTER=$BASEDIR/handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar
-ENV UPLOAD_WORDPRESS=$BASEDIR/handle-front-matter/set-front-matter/target/set-front-matter-1.0-SNAPSHOT.jar
+ENV UPLOAD_WORDPRESS=$BASEDIR/upload-blog/upload-wordpress/target/upload-wordpress-1.0-SNAPSHOT.jar
 
 COPY ./script/test.sh $BASEDIR/entrypoint.sh
 
